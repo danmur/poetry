@@ -7,6 +7,7 @@ from typing import List
 from typing import Union
 
 import requests
+from urllib3 import Retry
 
 from cachecontrol import CacheControl
 from cachecontrol.caches.file_cache import FileCache
@@ -72,6 +73,11 @@ class PyPiRepository(RemoteRepository):
         self._session = CacheControl(
             requests.session(), cache=self._cache_control_cache
         )
+        # Doesn't seem to be possible to get the retries into the relevant
+        # adapters without modifying them afterwards
+        for adapter in self._session.adapters.values():
+            if hasattr(adapter, "max_retries"):
+                adapter.max_retries = Retry(backoff_factor=0.1, total=10)
 
         self._name = "PyPI"
 
